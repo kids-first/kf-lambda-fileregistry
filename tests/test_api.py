@@ -24,7 +24,8 @@ def obj():
 @pytest.fixture(scope='session')
 def event():
     """ Returns a test s3 event """
-    with open('tests/s3_event.json') as f:
+    cur = os.path.dirname(os.path.realpath(__file__))
+    with open(os.path.join(cur, 's3_event.json')) as f:
         data = json.load(f)
     return data
 
