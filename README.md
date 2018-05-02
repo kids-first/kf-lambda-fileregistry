@@ -1,4 +1,4 @@
-Kids First File Service
-=========================
+Kids First File Registry Lambda 
+===============================
 
-A nano-service to listen for new files and import them to the Data Service
+A lambda to listen for new files and import them to the Data Service
