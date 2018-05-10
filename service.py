@@ -1,6 +1,7 @@
 import os
 import boto3
 from botocore.vendored import requests
+from base64 import b64decode
 
 
 s3 = boto3.client("s3")
@@ -18,6 +19,12 @@ DATA_TYPES = {
     'g.vcf.gz.tbi': 'Individual Variant Calls'
 }
 
+TOKEN = os.environ.get('CAVATICA_TOKEN', None)
+HEADERS = None
+if TOKEN:
+    CAVATICA_TOKEN = boto3.client('kms').decrypt(CiphertextBlob=b64decode(TOKEN))['Plaintext']
+    HEADERS = {'X-SBG-Auth-Token': CAVATICA_TOKEN}
+
 
 def handler(event, context):
     """
@@ -33,6 +40,22 @@ def handler(event, context):
         res[record['s3']['object']['key']] = r
 
     return res
+
+
+def check_gf_id(tags):
+    """
+    Checks if a tagset has a gf_id and if a genomic file with that id exists
+    in the dataservice
+    """
+    gf_id = None
+    if 'gf_id' in tags:
+        url = api+'genomic-files/'+tags['gf_id']
+        resp = requests.get(url)
+        if resp.status_code == 200:
+            return 'already imported'
+        # Save for later so we can import with pre-determined id
+        gf_id = tags['gf_id']
+    return gf_id
 
 
 def process_record(api, record):
@@ -64,14 +87,7 @@ def process_record(api, record):
     tags = {t['Key']: t['Value'] for t in tags['TagSet']}
 
     # Skip if there is a kf_id assigned already and exists in dataservice
-    gf_id = None
-    if 'gf_id' in tags:
-        url = api+'genomic-files/'+tags['gf_id']
-        resp = requests.get(url)
-        if resp.status_code == 200:
-            return 'already imported'
-        # Save for later so we can import with pre-determined id
-        gf_id = tags['gf_id']
+    gf_id = check_gf_id(tags)
 
     req_tags = ['cavatica_harmonized_file', 'cavatica_source_file',
                 'cavatica_app', 'bs_id', 'cavatica_source_path',
@@ -117,19 +133,30 @@ def process_record(api, record):
         tagset = {'TagSet': [{'Key': k, 'Value': v} for k, v in tags.items()]}
         r = s3.put_object_tagging(Bucket=bucket, Key=key, Tagging=tagset)
 
-    return 'imported'
+    res = register_input(api, source_path)
+
+    return {'harmonized': 'imported', 'source': res}
 
 
-def register_input(source_path):
+def register_input(api, source_path):
     """
     Registers a source genomic file given an s3 path
     """
-    bucket = source_path.split('_')[0]
+    bucket = source_path.replace('s3://', '').split('_')[0]
     key = '/'.join(source_path.split('/')[1:])
+
+    tags = s3.get_object_tagging(Bucket=bucket, Key=key)
+    tags = {t['Key']: t['Value'] for t in tags['TagSet']}
+
+    gf_id = check_gf_id(tags)
+    if gf_id:
+        return 'source file already registered'
+
+    obj = s3.get_object(Bucket=bucket, Key=key)
     
     file_name = key.split('/')[-1]
-    hashes = {'etag': record['s3']['object']['eTag']}
-    size = record['s3']['object']['size']
+    hashes = {'etag': ob['ETag']}
+    size = obj['ContentLength']
     urls = ['s3://{}/{}'.format(bucket, key)]
     file_format = key.split('/')[-1].lower()
     file_format = file_format[file_format.find('.'):]
@@ -141,7 +168,22 @@ def register_input(source_path):
         'data_type': data_type,
         'availability': 'Immediate Download',
         'controlled_access': True,
+        'is_harmonized': False,
         'hashes': hashes,
         'size': size,
         'urls': urls
     }
+
+    resp = requests.post(api+'genomic-files', json=gf)
+
+    if ('results' not in resp.json() and
+        'kf_id' not in resp.json()['results']):
+        return 'bad response from dataservice'
+
+    # Update tags with gf_id if it wasn't already in the tags
+    if gf_id is None:
+        tags['gf_id'] = resp.json()['results']['kf_id']
+        tagset = {'TagSet': [{'Key': k, 'Value': v} for k, v in tags.items()]}
+        r = s3.put_object_tagging(Bucket=bucket, Key=key, Tagging=tagset)
+
+    return 'imported'
