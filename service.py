@@ -14,8 +14,8 @@ DATA_TYPES = {
     'fastq': 'Unaligned Reads',
     'bam': 'Aligned Reads',
     'cram': 'Aligned Reads',
-    'bai': 'Aligned Reads Index',
-    'crai': 'Aligned Reads Index',
+    'bam.bai': 'Aligned Reads Index',
+    'cram.crai': 'Aligned Reads Index',
     'g.vcf.gz': 'Variant Calls',
     'g.vcf.gz.tbi': 'Individual Variant Calls'
 }
@@ -31,7 +31,6 @@ class DataServiceException(Exception):
 
 class CavaticaException(Exception):
         pass
-
 
 def handler(event, context):
     """
