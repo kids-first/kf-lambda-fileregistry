@@ -145,7 +145,7 @@ class FileImporter:
 
 
     def new_file(self, bucket, key, etag, size,
-                 gf_id=None):
+                 gf_id=None, bs_id=None):
         """
         Creates a new genomic file in the dataservice
 
@@ -177,6 +177,8 @@ class FileImporter:
 
         if gf_id:
             gf['kf_id'] = gf_id
+        if bs_id:
+            gf['biospecimen_id'] = bs_id
 
         resp = requests.post(self.api+'genomic-files', json=gf)
 
@@ -214,14 +216,13 @@ class FileImporter:
         return gf_id
 
 
-    def register_input(self, tags):
+    def register_input(self, harm_tags):
         """
         Registers a source genomic file given an s3 path
         """
-        source_path = tags['cavatica_source_path']
+        source_path = harm_tags['cavatica_source_path']
         bucket = source_path.replace('s3://', '').split('/')[0]
         key = '/'.join(source_path.split('/')[1:])
-
 
         tags = s3.get_object_tagging(Bucket=bucket, Key=key)
         tags = {t['Key']: t['Value'] for t in tags['TagSet']}
@@ -230,10 +231,12 @@ class FileImporter:
 
         obj = s3.get_object(Bucket=bucket, Key=key)
         
-        gf = self.new_file(bucket, key, obj['ETag'], obj['ContentLength'])
+        gf = self.new_file(bucket, key, obj['ETag'], obj['ContentLength'],
+                           bs_id=harm_tags['bs_id'])
 
         # Update tags with gf_id if it wasn't already in the tags
         if gf_id is None:
             tags['gf_id'] = gf['kf_id']
+            tags['bs_id'] = harm_tags['bs_id']
             tagset = {'TagSet': [{'Key': k, 'Value': v} for k, v in tags.items()]}
             r = s3.put_object_tagging(Bucket=bucket, Key=key, Tagging=tagset)

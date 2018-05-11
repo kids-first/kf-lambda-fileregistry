@@ -132,6 +132,7 @@ def test_create(event, obj):
         'controlled_access': True,
         'availability': 'Immediate Download',
         'is_harmonized': False,
+        'biospecimen_id': 'BS_QV3Z0DZM',
         'hashes': {'etag': '098f6bcd4621d373cade4e832627b4f6'},
         'size': 4,
         'urls': ['s3://{}/{}'.format(SOURCE_BUCKET, SOURCE_OBJECT)]
@@ -336,6 +337,39 @@ def test_new_file_gf_id():
         'hashes': {'etag': 'd41d8cd98f00b204e9800998ecf8427e'},
         'size': 1024,
         'urls': ['s3://{}/{}'.format(BUCKET, OBJECT)]
+    }
+
+    req.post.assert_called_with('http://api.com/genomic-files', json=expected)
+    assert req.post.call_count == 1
+
+
+def test_new_file_bs_id():
+    """ Test that new source file registers with a biospecimen """
+    mock = patch('service.requests')
+    req = mock.start()
+    mock_resp = MagicMock()
+    mock_resp.status_code = 201
+    mock_resp.json.return_value = {'results': {'kf_id': 'GF_00000001'}}
+    req.post.return_value = mock_resp
+
+    importer = service.FileImporter('http://api.com/', 'abc123')
+    
+    res = importer.new_file(SOURCE_BUCKET, SOURCE_OBJECT,
+                            'd41d8cd98f00b204e9800998ecf8427e', 1024,
+                            gf_id='GF_00000001', bs_id='BS_00000000')
+
+    expected = {
+        'kf_id': 'GF_00000001',
+        'file_name': 'bd042b24ae844a57ace28cf70cb3c852.bam',
+        'file_format': 'bam',
+        'data_type': 'Aligned Reads',
+        'controlled_access': True,
+        'availability': 'Immediate Download',
+        'is_harmonized': False,
+        'biospecimen_id': 'BS_00000000',
+        'hashes': {'etag': 'd41d8cd98f00b204e9800998ecf8427e'},
+        'size': 1024,
+        'urls': ['s3://{}/{}'.format(SOURCE_BUCKET, SOURCE_OBJECT)]
     }
 
     req.post.assert_called_with('http://api.com/genomic-files', json=expected)
