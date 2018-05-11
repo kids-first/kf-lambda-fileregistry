@@ -99,11 +99,15 @@ class FileImporter:
 
         If there is a `gf_id` tag on the object already, check to see if that
         file already exists in the dataservice, if it does not, assume that
-        it is a pre-determined kf_id and use it when creating a new genomic file.
+        it is a pre-determined kf_id and use it when creating a new genomic
+        file.
+
+        If the biospecimen that is referenced in the `bs_id` tag is not
+        found in the dataservice, abort the import.
         
-        Once the genomic file has been imported to the dataservice, tag the object
-        with the kf_id under the `gf_id` tag, unless there was already a `gf_id`
-        field there.
+        Once the genomic file has been imported to the dataservice, tag the
+        object with the kf_id under the `gf_id` tag, unless there was already a
+        `gf_id` field there.
         """
         bucket = record['s3']['bucket']['name']
         key = record['s3']['object']['key']
@@ -122,6 +126,11 @@ class FileImporter:
         missing = [tag for tag in req_tags if tag not in tags]
         if len(missing) > 0:
             raise ImportException('missing required tag(s) {}'.format(missing))
+
+        # Check that the biospecimen exists
+        resp = requests.get(self.api+'biospecimens/'+tags['bs_id'])
+        if resp.status_code != 200:
+            raise ImportException('biospecimen matching bs_id does not exist')
 
         gf = self.new_file(bucket, key, record['s3']['object']['eTag'],
                            record['s3']['object']['size'], gf_id=gf_id)

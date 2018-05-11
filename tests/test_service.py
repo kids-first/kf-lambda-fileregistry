@@ -62,6 +62,7 @@ def obj():
         return ob
     return with_obj
 
+
 @pytest.fixture(scope='session')
 def event():
     """ Returns a test s3 event """
@@ -70,6 +71,7 @@ def event():
         data = json.load(f)
     return data
 
+
 @mock_s3
 def test_create(event, obj):
     """ Test that the lamba calls the dataservice """
@@ -77,6 +79,20 @@ def test_create(event, obj):
     os.environ['DATASERVICE_API'] = 'http://api.com/'
     mock = patch('service.requests')
     req = mock.start()
+
+    def mock_get(url, *args, **kwargs):
+        if '/genomic-files' in url:
+            resp = MagicMock()
+            resp.status_code = 404
+            return resp
+        elif '/biospecimens' in url:
+            resp = MagicMock()
+            resp.json.return_value = {'results': {'kf_id': url[:-11]}}
+            resp.status_code = 200
+            return resp
+
+    req.get.side_effect = mock_get
+
     mock_resp = MagicMock()
     mock_resp.json.return_value = {'results': {'kf_id': 'GF_00000000'}}
     mock_resp.status_code = 201
@@ -175,12 +191,26 @@ def test_existing_gf_id(event, obj):
         Bucket=BUCKET, Key=OBJECT, Tagging=tags
     )
 
-    os.environ['DATASERVICE_API'] = 'http://api.com/'
     mock = patch('service.requests')
     req = mock.start()
+
+    def mock_get(url, *args, **kwargs):
+        if '/genomic-files' in url:
+            resp = MagicMock()
+            resp.status_code = 404
+            return resp
+        elif '/biospecimens' in url:
+            resp = MagicMock()
+            resp.json.return_value = {'results': {'kf_id': url[:-11]}}
+            resp.status_code = 200
+            return resp
+
+    req.get.side_effect = mock_get
+
     mock_resp = MagicMock()
-    mock_resp.status_code = 404
-    req.get.return_value = mock_resp
+    mock_resp.json.return_value = {'results': {'kf_id': 'GF_00000000'}}
+    mock_resp.status_code = 201
+    req.post.return_value = mock_resp
 
     service.handler(event, {})
 
@@ -197,9 +227,9 @@ def test_existing_gf_id(event, obj):
         'urls': ['s3://{}/{}'.format(BUCKET, OBJECT)]
     }
 
-    assert req.get.call_count == 1
-    req.post.assert_called_with('http://api.com/genomic-files', json=expected)
-    assert req.post.call_count == 1
+    assert req.get.call_count == 2
+    req.post.assert_any_call('http://api.com/genomic-files', json=expected)
+    assert req.post.call_count == 2
 
     mock.stop()
 
@@ -228,6 +258,24 @@ def test_req_tags(event, obj):
 
     mock.stop()
 
+
+@mock_s3
+def test_no_biospecimen(event, obj):
+    """ Test that nothing is done if the biospecimen does not exist """
+    obj()
+    s3 = boto3.client('s3')
+    mock = patch('service.requests')
+    req = mock.start()
+    mock_resp = MagicMock()
+    mock_resp.status_code = 404
+    req.get.return_value = mock_resp
+
+    importer = service.FileImporter('http://api.com/', 'abc123')
+    with pytest.raises(service.ImportException):
+        importer.import_harmonized(event['Records'][0])
+
+    req.get.assert_any_call('http://api.com/biospecimens/BS_QV3Z0DZM')
+    mock.stop()
 
 
 def test_new_file():
