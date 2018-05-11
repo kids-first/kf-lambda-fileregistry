@@ -118,6 +118,7 @@ def test_create(event, obj):
         'controlled_access': True,
         'availability': 'Immediate Download',
         'is_harmonized': True,
+        'biospecimen_id': 'BS_QV3Z0DZM',
         'hashes': {'etag': 'd41d8cd98f00b204e9800998ecf8427e'},
         'size': 1024,
         'urls': ['s3://{}/{}'.format(BUCKET, OBJECT)]
@@ -223,6 +224,7 @@ def test_existing_gf_id(event, obj):
         'controlled_access': True,
         'availability': 'Immediate Download',
         'is_harmonized': True,
+        'biospecimen_id': 'BS_QV3Z0DZM',
         'hashes': {'etag': 'd41d8cd98f00b204e9800998ecf8427e'},
         'size': 1024,
         'urls': ['s3://{}/{}'.format(BUCKET, OBJECT)]
@@ -324,7 +326,7 @@ def test_new_file_gf_id():
     
     res = importer.new_file(BUCKET, OBJECT,
                             'd41d8cd98f00b204e9800998ecf8427e', 1024,
-                            gf_id='GF_00000001')
+                            gf_id='GF_00000001', bs_id='BS_00000001')
 
     expected = {
         'kf_id': 'GF_00000001',
@@ -334,6 +336,7 @@ def test_new_file_gf_id():
         'controlled_access': True,
         'availability': 'Immediate Download',
         'is_harmonized': True,
+        'biospecimen_id': 'BS_00000001',
         'hashes': {'etag': 'd41d8cd98f00b204e9800998ecf8427e'},
         'size': 1024,
         'urls': ['s3://{}/{}'.format(BUCKET, OBJECT)]

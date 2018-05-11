@@ -111,7 +111,6 @@ class FileImporter:
         """
         bucket = record['s3']['bucket']['name']
         key = record['s3']['object']['key']
-
         tags = s3.get_object_tagging(Bucket=bucket, Key=key)
         tags = {t['Key']: t['Value'] for t in tags['TagSet']}
 
@@ -133,7 +132,8 @@ class FileImporter:
             raise ImportException('biospecimen matching bs_id does not exist')
 
         gf = self.new_file(bucket, key, record['s3']['object']['eTag'],
-                           record['s3']['object']['size'], gf_id=gf_id)
+                           record['s3']['object']['size'], gf_id=gf_id,
+                           bs_id=tags['bs_id'])
 
         # Update tags with gf_id if it wasn't already in the tags
         if gf_id is None:
