@@ -119,9 +119,9 @@ class FileImporter:
                     'cavatica_task']
 
         # Make sure the required tags are there
-        for tag in req_tags:
-            if tag not in tags:
-                return 'missing required tag {}'.format(tag)
+        missing = [tag for tag in req_tags if tag not in tags]
+        if len(missing) > 0:
+            raise ImportException('missing required tag(s) {}'.format(missing))
 
         gf = self.new_file(bucket, key, record['s3']['object']['eTag'],
                            record['s3']['object']['size'], gf_id=gf_id)

@@ -204,6 +204,32 @@ def test_existing_gf_id(event, obj):
     mock.stop()
 
 
+@mock_s3
+def test_req_tags(event, obj):
+    """ Test that error is raised for missing tags """
+    obj()
+    s3 = boto3.client('s3')
+    # Add a gf_id
+    tags = TAGS.copy()
+    tags['TagSet'] = tags['TagSet'][:4]
+    response = s3.put_object_tagging(
+        Bucket=BUCKET, Key=OBJECT, Tagging=tags
+    )
+
+    mock = patch('service.requests')
+    req = mock.start()
+    mock_resp = MagicMock()
+    mock_resp.status_code = 404
+    req.get.return_value = mock_resp
+
+    importer = service.FileImporter('http://api.com/', 'abc123')
+    with pytest.raises(service.ImportException):
+        importer.import_harmonized(event['Records'][0])
+
+    mock.stop()
+
+
+
 def test_new_file():
     """ Test that new file are created correctly """
     os.environ['DATASERVICE_API'] = 'http://api.com/'
