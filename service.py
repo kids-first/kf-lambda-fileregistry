@@ -44,7 +44,7 @@ def handler(event, context):
     TOKEN = os.environ.get('CAVATICA_TOKEN', None)
     CAVATICA_TOKEN = None
     if TOKEN:
-        CAVATICA_TOKEN = boto3.client('kms').decrypt(CiphertextBlob=b64decode(TOKEN)).get(['Plaintext'], None)
+        CAVATICA_TOKEN = boto3.client('kms').decrypt(CiphertextBlob=b64decode(TOKEN)).get('Plaintext', None)
         HEADERS = {'X-SBG-Auth-Token': CAVATICA_TOKEN}
 
     importer = FileImporter(DATASERVICE_API, CAVATICA_TOKEN)
