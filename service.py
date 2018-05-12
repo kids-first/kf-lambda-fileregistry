@@ -1,3 +1,4 @@
+import time
 import os
 import boto3
 from botocore.vendored import requests
@@ -46,6 +47,7 @@ def handler(event, context):
         CAVATICA_TOKEN = boto3.client('kms').decrypt(CiphertextBlob=b64decode(TOKEN)).get('Plaintext', None)
         HEADERS = {'X-SBG-Auth-Token': CAVATICA_TOKEN}
 
+    t0 = time.time()
     importer = FileImporter(DATASERVICE_API, CAVATICA_TOKEN)
     res = {}
     for record in event['Records']:
@@ -53,6 +55,7 @@ def handler(event, context):
         key = record['s3']['object']['key']
         name = '{}/{}'.format(bucket, key)
         res[name] = importer.import_from_event(record)
+    print('total time', time.time()-t0)
     return res
 
 
@@ -67,18 +70,25 @@ class FileImporter:
         Processes a single record from an s3 event
         """
         res = {'harmonized': 'not imported', 'source': 'not imported'}
+        t0 = time.time()
         try:
             tags = self.import_harmonized(event)
             res['harmonized'] = 'imported'
         except (DataServiceException, ImportException) as err:
             res['harmonized'] = str(err)
             return res
+
+        t1 = time.time()
             
         try:
             self.register_input(tags)
             res['source'] = 'imported'
         except (DataServiceException, ImportException) as err:
             res['source'] = str(err)
+        t2 = time.time()
+
+        print('Time to import harmonized', t1-t0)
+        print('Time to import source', t2-t1)
 
         return res
 
@@ -110,11 +120,17 @@ class FileImporter:
         """
         bucket = record['s3']['bucket']['name']
         key = record['s3']['object']['key']
+        t0 = time.time()
         tags = s3.get_object_tagging(Bucket=bucket, Key=key)
         tags = {t['Key']: t['Value'] for t in tags['TagSet']}
+        t1 = time.time()
+        print('time to get tags', t1-t0)
 
         # Skip if there is a kf_id assigned already and exists in dataservice
+        t0 = time.time()
         gf_id = self.get_gf_id_tag(tags)
+        t1 = time.time()
+        print('time to get look up by gf_id', t1-t0)
 
         req_tags = ['cavatica_harmonized_file', 'cavatica_source_file',
                     'cavatica_app', 'bs_id', 'cavatica_source_path',
@@ -126,7 +142,10 @@ class FileImporter:
             raise ImportException('missing required tag(s) {}'.format(missing))
 
         # Check that the biospecimen exists
+        t0 = time.time()
         resp = requests.get(self.api+'biospecimens/'+tags['bs_id'])
+        t1 = time.time()
+        print('time to get biospecimen', t1-t0)
         if resp.status_code != 200:
             raise ImportException('biospecimen matching bs_id does not exist')
 
