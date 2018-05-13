@@ -1,5 +1,7 @@
 import os
 import boto3
+import json
+import time
 from botocore.vendored import requests
 from base64 import b64decode
 
@@ -21,8 +23,6 @@ DATA_TYPES = {
 }
 
 
-
-
 class ImportException(Exception):
         pass
 
@@ -34,7 +34,9 @@ class CavaticaException(Exception):
 
 def handler(event, context):
     """
-    Register a genomic file in dataservice
+    Register a genomic file in dataservice from a list of s3 events.
+    If all events are not processed before the lambda runs out of time,
+    the remaining will be submitted to a new function
     """
     DATASERVICE_API = os.environ.get('DATASERVICE_API', None)
     if DATASERVICE_API is None:
@@ -48,11 +50,36 @@ def handler(event, context):
 
     importer = FileImporter(DATASERVICE_API, CAVATICA_TOKEN)
     res = {}
-    for record in event['Records']:
+    for i, record in enumerate(event['Records']):
+
+        # If we're running out of time, stop processing and re-invoke
+        # NB: We check that i > 0 to ensure that *some* progress has been made
+        # to avoid infinite call chains.
+        if (hasattr(context, 'invoked_function_arn') and
+            context.get_remaining_time_in_millis() < 500 and
+            i > 0):
+            records = event['Records'][i:]
+            print('not able to complete {} records, '
+                  're-invoking the function'.format(len(records)))
+            remaining = {'Records': records}
+            lam = boto3.client('lambda')
+            context.invoked_function_arn
+            # Invoke the lambda again with remaining records
+            response = lam.invoke(
+                FunctionName=context.invoked_function_arn,
+                InvocationType='Event',
+                Payload=str.encode(json.dumps(remaining))
+            )
+            # Stop processing and exit
+            break
+
         bucket = record['s3']['bucket']['name']
         key = record['s3']['object']['key']
         name = '{}/{}'.format(bucket, key)
         res[name] = importer.import_from_event(record)
+    else:
+        print('processed all records')
+
     return res
 
 
@@ -73,12 +100,14 @@ class FileImporter:
         except (DataServiceException, ImportException) as err:
             res['harmonized'] = str(err)
             return res
+
             
         try:
             self.register_input(tags)
             res['source'] = 'imported'
         except (DataServiceException, ImportException) as err:
             res['source'] = str(err)
+
 
         return res
 

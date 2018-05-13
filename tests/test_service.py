@@ -63,13 +63,43 @@ def obj():
     return with_obj
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='function')
 def event():
     """ Returns a test s3 event """
     cur = os.path.dirname(os.path.realpath(__file__))
     with open(os.path.join(cur, 's3_event.json')) as f:
         data = json.load(f)
     return data
+
+
+@mock_s3
+def test_out_of_time(event, obj):
+    """ Test that a function is re-invoked when records remain """
+    obj()
+    os.environ['DATASERVICE_API'] = 'http://api.com/'
+    mock_r = patch('service.requests')
+    req = mock_r.start()
+
+    class Context:
+        def __init__(self):
+            self.invoked_function_arn = 'arn:aws:lambda:::function:kf-lambda'
+
+        def get_remaining_time_in_millis(self):
+            return 300
+
+    # Add a second record
+    event['Records'].append(event['Records'][0])
+
+    with patch('service.boto3.client') as mock:
+        service.handler(event, Context())
+        assert mock().invoke.call_count == 1
+
+        _, args = mock().invoke.call_args_list[0]
+        assert args['FunctionName'] == Context().invoked_function_arn
+        assert args['InvocationType'] == 'Event'
+        assert json.loads(args['Payload']) =={'Records': [event['Records'][1]]}
+
+    mock_r.stop()
 
 
 @mock_s3
