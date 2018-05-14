@@ -144,6 +144,7 @@ def test_create(event, obj):
     expected = {
         'file_name': '60d33dec-98db-446c-ac64-f4d027588f26.cram',
         'file_format': 'cram',
+        'acl': ['SD_9PYZAHHE'],
         'data_type': 'Aligned Reads',
         'controlled_access': True,
         'availability': 'Immediate Download',
@@ -159,6 +160,7 @@ def test_create(event, obj):
     expected = {
         'file_name': 'bd042b24ae844a57ace28cf70cb3c852.bam.bai',
         'file_format': 'bai',
+        'acl': ['SD_9PYZAHHE'],
         'data_type': 'Aligned Reads Index',
         'controlled_access': True,
         'availability': 'Immediate Download',
@@ -250,6 +252,7 @@ def test_existing_gf_id(event, obj):
         'kf_id': 'GF_00000002',
         'file_name': '60d33dec-98db-446c-ac64-f4d027588f26.cram',
         'file_format': 'cram',
+        'acl': ['SD_9PYZAHHE'],
         'data_type': 'Aligned Reads',
         'controlled_access': True,
         'availability': 'Immediate Download',
@@ -356,12 +359,14 @@ def test_new_file_gf_id():
     
     res = importer.new_file(BUCKET, OBJECT,
                             'd41d8cd98f00b204e9800998ecf8427e', 1024,
-                            gf_id='GF_00000001', bs_id='BS_00000001')
+                            gf_id='GF_00000001', bs_id='BS_00000001',
+                            study_id='SD_00000001')
 
     expected = {
         'kf_id': 'GF_00000001',
         'file_name': '60d33dec-98db-446c-ac64-f4d027588f26.cram',
         'file_format': 'cram',
+        'acl': ['SD_00000001'],
         'data_type': 'Aligned Reads',
         'controlled_access': True,
         'availability': 'Immediate Download',
@@ -389,12 +394,14 @@ def test_new_file_bs_id():
     
     res = importer.new_file(SOURCE_BUCKET, SOURCE_OBJECT,
                             'd41d8cd98f00b204e9800998ecf8427e', 1024,
-                            gf_id='GF_00000001', bs_id='BS_00000000')
+                            gf_id='GF_00000001', bs_id='BS_00000000',
+                            study_id='SD_00000000')
 
     expected = {
         'kf_id': 'GF_00000001',
         'file_name': 'bd042b24ae844a57ace28cf70cb3c852.bam.bai',
         'file_format': 'bai',
+        'acl': ['SD_00000000'],
         'data_type': 'Aligned Reads Index',
         'controlled_access': True,
         'availability': 'Immediate Download',
