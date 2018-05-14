@@ -23,6 +23,20 @@ DATA_TYPES = {
 }
 
 
+FILE_FORMATS = {
+    'fq': 'fq',
+    'fastq': 'fq',
+    'fq.gz': 'fq',
+    'fastq.gz': 'fq',
+    'bam': 'bam',
+    'cram': 'cram',
+    'bam.bai': 'bai',
+    'cram.crai': 'crai',
+    'g.vcf.gz': 'gvcf',
+    'g.vcf.gz.tbi': 'tbi'
+}
+
+
 class ImportException(Exception):
         pass
 
@@ -189,6 +203,8 @@ class FileImporter:
         file_format = key.split('/')[-1].lower()
         file_format = file_format[file_format.find('.')+1:]
         data_type = DATA_TYPES[file_format]
+        if file_format in FILE_FORMATS:
+            file_format = FILE_FORMATS[file_format]
         harmonized = key.startswith('harmonized/')
 
         gf = {

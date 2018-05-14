@@ -10,7 +10,7 @@ BUCKET = 'kf-study-us-east-1-dev-sd-9pyzahhe'
 OBJECT = 'harmonized/cram/60d33dec-98db-446c-ac64-f4d027588f26.cram'
 
 SOURCE_BUCKET = 'kf-seq-data-washu'
-SOURCE_OBJECT = 'OrofacialCleft/bd042b24ae844a57ace28cf70cb3c852.bam'
+SOURCE_OBJECT = 'OrofacialCleft/bd042b24ae844a57ace28cf70cb3c852.bam.bai'
 
 TAGS = {
     'TagSet': [
@@ -32,7 +32,7 @@ TAGS = {
         },
         {
             'Key': 'cavatica_source_path',
-            'Value': 'kf-seq-data-washu/OrofacialCleft/bd042b24ae844a57ace28cf70cb3c852.bam'
+            'Value': 'kf-seq-data-washu/OrofacialCleft/bd042b24ae844a57ace28cf70cb3c852.bam.bai'
         },
         {
             'Key': 'cavatica_task',
@@ -157,9 +157,9 @@ def test_create(event, obj):
 
     # Check source file call
     expected = {
-        'file_name': 'bd042b24ae844a57ace28cf70cb3c852.bam',
-        'file_format': 'bam',
-        'data_type': 'Aligned Reads',
+        'file_name': 'bd042b24ae844a57ace28cf70cb3c852.bam.bai',
+        'file_format': 'bai',
+        'data_type': 'Aligned Reads Index',
         'controlled_access': True,
         'availability': 'Immediate Download',
         'is_harmonized': False,
@@ -393,9 +393,9 @@ def test_new_file_bs_id():
 
     expected = {
         'kf_id': 'GF_00000001',
-        'file_name': 'bd042b24ae844a57ace28cf70cb3c852.bam',
-        'file_format': 'bam',
-        'data_type': 'Aligned Reads',
+        'file_name': 'bd042b24ae844a57ace28cf70cb3c852.bam.bai',
+        'file_format': 'bai',
+        'data_type': 'Aligned Reads Index',
         'controlled_access': True,
         'availability': 'Immediate Download',
         'is_harmonized': False,
