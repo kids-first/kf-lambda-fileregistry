@@ -10,16 +10,16 @@ s3 = boto3.client("s3")
 
 
 DATA_TYPES = {
-    'fa': 'Unaligned Reads',
     'fq': 'Unaligned Reads',
-    'fasta': 'Unaligned Reads',
     'fastq': 'Unaligned Reads',
+    'fq.gz': 'Unaligned Reads',
+    'fastq.gz': 'Unaligned Reads',
     'bam': 'Aligned Reads',
     'cram': 'Aligned Reads',
     'bam.bai': 'Aligned Reads Index',
     'cram.crai': 'Aligned Reads Index',
-    'g.vcf.gz': 'Variant Calls',
-    'g.vcf.gz.tbi': 'Individual Variant Calls'
+    'g.vcf.gz': 'gVCF',
+    'g.vcf.gz.tbi': 'gVCF Index'
 }
 
 
