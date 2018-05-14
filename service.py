@@ -10,9 +10,7 @@ s3 = boto3.client("s3")
 
 
 DATA_TYPES = {
-    'fa': 'Unaligned Reads',
     'fq': 'Unaligned Reads',
-    'fasta': 'Unaligned Reads',
     'fastq': 'Unaligned Reads',
     'bam': 'Aligned Reads',
     'cram': 'Aligned Reads',
