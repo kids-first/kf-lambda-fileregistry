@@ -18,8 +18,8 @@ DATA_TYPES = {
     'cram': 'Aligned Reads',
     'bam.bai': 'Aligned Reads Index',
     'cram.crai': 'Aligned Reads Index',
-    'g.vcf.gz': 'Variant Calls',
-    'g.vcf.gz.tbi': 'Individual Variant Calls'
+    'g.vcf.gz': 'gVCF',
+    'g.vcf.gz.tbi': 'gVCF Index'
 }
 
 
