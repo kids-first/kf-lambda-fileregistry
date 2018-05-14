@@ -156,6 +156,14 @@ class FileImporter:
         tags = s3.get_object_tagging(Bucket=bucket, Key=key)
         tags = {t['Key']: t['Value'] for t in tags['TagSet']}
 
+        # Update if no study_id
+        if 'study_id' not in tags:
+            study_id = '_'.join(bucket.split('-')[-2:]).upper()
+            tags['study_id'] = study_id
+            tagset = {'TagSet': [{'Key': k, 'Value': v} for k, v in tags.items()]}
+            r = s3.put_object_tagging(Bucket=bucket, Key=key, Tagging=tagset)
+        study_id = tags['study_id']
+
         # Skip if there is a kf_id assigned already and exists in dataservice
         gf_id = self.get_gf_id_tag(tags)
 
@@ -175,9 +183,9 @@ class FileImporter:
 
         gf = self.new_file(bucket, key, record['s3']['object']['eTag'],
                            record['s3']['object']['size'], gf_id=gf_id,
-                           bs_id=tags['bs_id'])
+                           bs_id=tags['bs_id'], study_id=study_id)
 
-        # Update tags with gf_id if it wasn't already in the tags
+        # Update tags if no gf_id
         if gf_id is None:
             tags['gf_id'] = gf['kf_id']
             tagset = {'TagSet': [{'Key': k, 'Value': v} for k, v in tags.items()]}
@@ -187,7 +195,7 @@ class FileImporter:
 
 
     def new_file(self, bucket, key, etag, size,
-                 gf_id=None, bs_id=None):
+                 gf_id=None, bs_id=None, study_id=None):
         """
         Creates a new genomic file in the dataservice
 
@@ -223,6 +231,8 @@ class FileImporter:
             gf['kf_id'] = gf_id
         if bs_id:
             gf['biospecimen_id'] = bs_id
+        if study_id:
+            gf['acl'] = [ study_id ]
 
         resp = requests.post(self.api+'genomic-files', json=gf)
 
@@ -271,16 +281,19 @@ class FileImporter:
         tags = s3.get_object_tagging(Bucket=bucket, Key=key)
         tags = {t['Key']: t['Value'] for t in tags['TagSet']}
 
+        study_id = harm_tags['study_id']
+
         gf_id = self.get_gf_id_tag(tags)
 
         obj = s3.get_object(Bucket=bucket, Key=key)
         
         gf = self.new_file(bucket, key, obj['ETag'], obj['ContentLength'],
-                           bs_id=harm_tags['bs_id'])
+                           bs_id=harm_tags['bs_id'], study_id=study_id)
 
-        # Update tags with gf_id if it wasn't already in the tags
-        if gf_id is None:
+        # Update tags if study_id or gf_id weren't in the tags
+        if gf_id is None or 'study_id' not in tags:
             tags['gf_id'] = gf['kf_id']
+            tags['study_id'] = harm_tags['study_id']
             tags['bs_id'] = harm_tags['bs_id']
             tagset = {'TagSet': [{'Key': k, 'Value': v} for k, v in tags.items()]}
             r = s3.put_object_tagging(Bucket=bucket, Key=key, Tagging=tagset)
