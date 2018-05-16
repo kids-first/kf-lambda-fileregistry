@@ -1,3 +1,4 @@
+import copy
 import os
 import json
 import boto3
@@ -160,11 +161,11 @@ def invoke(lam, fileregistry, records):
 
 
 def event_generator(bucket, key, size, e_tag):
-    ev = record_template.copy()
+    ev = copy.deepcopy(record_template)
     ev["s3"]["bucket"]["name"] = bucket
     ev["s3"]["bucket"]["arn"] = 'arn:aws:s3:::'+bucket
     ev["s3"]["object"]["key"] = key
     ev["s3"]["object"]["size"] = size
-    ev["s3"]["object"]["eTag"] = e_tag
+    ev["s3"]["object"]["eTag"] = e_tag.replace('"', '')
     
     return ev
