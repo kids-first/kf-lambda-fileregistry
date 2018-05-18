@@ -288,7 +288,8 @@ class FileImporter:
         obj = s3.get_object(Bucket=bucket, Key=key)
         
         gf = self.new_file(bucket, key, obj['ETag'], obj['ContentLength'],
-                           bs_id=harm_tags['bs_id'], study_id=study_id)
+                           bs_id=harm_tags['bs_id'], study_id=study_id,
+                           gf_id=gf_id)
 
         # Update tags if study_id or gf_id weren't in the tags
         if gf_id is None or 'study_id' not in tags:
