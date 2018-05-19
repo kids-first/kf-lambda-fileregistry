@@ -32,7 +32,7 @@ FILE_FORMATS = {
     'cram': 'cram',
     'bam.bai': 'bai',
     'cram.crai': 'crai',
-    'g.vcf.gz': 'gvcf',
+    'g.vcf.gz': 'gVCF',
     'g.vcf.gz.tbi': 'tbi'
 }
 
