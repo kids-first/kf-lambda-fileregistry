@@ -88,7 +88,7 @@ pipeline {
       steps {
              script {
                      env.DEPLOY_TO_PRD = input message: 'User input required',
-                                     submitter: 'lubneuskia,heatha',
+                                     submitter: 'lubneuskia,heatha,kolbmand',
                                      parameters: [choice(name: 'fileregistry-lambda: Deploy to PRD Environment', choices: 'no\nyes', description: 'Choose "yes" if you want to deploy the PRD server')]
              }
      }
@@ -123,7 +123,7 @@ pipeline {
       steps {
              script {
                      env.ROLL_BACK = input message: 'User input required',
-                                     submitter: 'lubneuskia,heatha',
+                                     submitter: 'lubneuskia,heatha,kolbamand',
                                      parameters: [choice(name: 'fileregistry-lambda: Deploy to PRD Environment', choices: 'no\nyes', description: 'Choose "yes" if you want to deploy the PRD server')]
              }
      }
