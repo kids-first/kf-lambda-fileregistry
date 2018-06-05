@@ -281,6 +281,73 @@ def test_existing_gf_id(event, obj):
 
 
 @mock_s3
+def test_consent_code(event, obj):
+    """ Test that a new genomic file is created with predefined kf_id  """
+    os.environ['DATASERVICE_API'] = 'http://api.com/'
+    obj()
+    s3 = boto3.client('s3')
+    # Add a gf_id
+    tags = TAGS.copy()
+    tags['TagSet'].append({'Key': 'gf_id', 'Value': 'GF_00000002'})
+    response = s3.put_object_tagging(
+        Bucket=BUCKET, Key=OBJECT, Tagging=tags
+    )
+
+    mock = patch('service.requests')
+    req = mock.start()
+
+    def mock_get(url, *args, **kwargs):
+        if '/genomic-files' in url:
+            resp = MagicMock()
+            resp.status_code = 404
+            return resp
+        elif '/biospecimens' in url:
+            resp = MagicMock()
+            resp.json.return_value = {
+                    'results': {
+                        'kf_id': url[:-11],
+                        'dbgap_consent_code': 'phs0001168.c2'
+                    }
+                }
+            resp.status_code = 200
+            return resp
+        elif '/studies' in url:
+            resp = MagicMock()
+            resp.status_code = 200
+            return resp
+
+    req.get.side_effect = mock_get
+
+    mock_resp = MagicMock()
+    mock_resp.json.return_value = {'results': {'kf_id': 'GF_00000000'}}
+    mock_resp.status_code = 201
+    req.post.return_value = mock_resp
+
+    service.handler(event, {})
+
+    expected = {
+        'kf_id': 'GF_00000002',
+        'file_name': '60d33dec-98db-446c-ac64-f4d027588f26.cram',
+        'file_format': 'cram',
+        'acl': ['SD_9PYZAHHE', 'phs0001168.c2'],
+        'data_type': 'Aligned Reads',
+        'controlled_access': True,
+        'availability': 'Immediate Download',
+        'is_harmonized': True,
+        'biospecimen_id': 'BS_QV3Z0DZM',
+        'hashes': {'etag': 'd41d8cd98f00b204e9800998ecf8427e'},
+        'size': 1024,
+        'urls': ['s3://{}/{}'.format(BUCKET, OBJECT)]
+    }
+
+    assert req.get.call_count == 4
+    req.post.assert_any_call('http://api.com/genomic-files', json=expected)
+    assert req.post.call_count == 2
+
+    mock.stop()
+
+
+@mock_s3
 def test_external_id_acl(event, obj):
     """ Test that the study's external id is in the acl """
     os.environ['DATASERVICE_API'] = 'http://api.com/'

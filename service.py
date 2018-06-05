@@ -183,9 +183,12 @@ class FileImporter:
         if resp.status_code != 200:
             raise ImportException('biospecimen matching bs_id does not exist')
 
+        consent_code = resp.json()['results'].get('dbgap_consent_code')
+
         gf = self.new_file(bucket, key, record['s3']['object']['eTag'],
                            record['s3']['object']['size'], gf_id=gf_id,
-                           bs_id=tags['bs_id'], study_id=study_id)
+                           bs_id=tags['bs_id'], study_id=study_id,
+                           consent_code=consent_code)
 
         # Update tags if no gf_id
         if gf_id is None:
@@ -206,7 +209,7 @@ class FileImporter:
             return self.external_ids[study_id]
 
     def new_file(self, bucket, key, etag, size,
-                 gf_id=None, bs_id=None, study_id=None):
+                 gf_id=None, bs_id=None, study_id=None, consent_code=None):
         """
         Creates a new genomic file in the dataservice
 
@@ -215,6 +218,7 @@ class FileImporter:
         :param etag: The ETag of the object
         :param size: The size in bytes of the object
         :param gf_id: Optional kf_id for the genomic file
+        :param consent_code: Optional consent code for the acl
         """
         file_name = key.split('/')[-1]
         hashes = {'etag': etag.replace('"', '')}
@@ -245,9 +249,13 @@ class FileImporter:
             gf['biospecimen_id'] = bs_id
         if study_id:
             gf['acl'].append(study_id)
+
         external_id = self.get_external_id(study_id)
         if external_id:
             gf['acl'].append(external_id)
+
+        if consent_code:
+            gf['acl'].append(consent_code)
 
         resp = requests.post(self.api+'genomic-files', json=gf)
 
