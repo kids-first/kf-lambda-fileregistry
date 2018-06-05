@@ -104,6 +104,7 @@ class FileImporter:
     def __init__(self, api, cavatica_token):
         self.api = api
         self.cavatica_token = cavatica_token
+        self.external_ids = {}
 
     def import_from_event(self, event):
         """
@@ -117,7 +118,6 @@ class FileImporter:
             res['harmonized'] = str(err)
             return res
 
-            
         try:
             self.register_input(tags)
             res['source'] = 'imported'
@@ -195,6 +195,15 @@ class FileImporter:
 
         return tags
 
+    def get_external_id(self, study_id):
+        if study_id is None:
+            return
+        if study_id in self.external_ids:
+            return self.external_ids[study_id]
+        resp = requests.get(self.api+'studies/'+study_id)
+        if resp.status_code == 200 and 'results' in resp.json():
+            self.external_ids[study_id] = resp.json()['results']['external_id']
+            return self.external_ids[study_id]
 
     def new_file(self, bucket, key, etag, size,
                  gf_id=None, bs_id=None, study_id=None):
@@ -226,7 +235,8 @@ class FileImporter:
             'is_harmonized': harmonized,
             'hashes': hashes,
             'size': size,
-            'urls': urls
+            'urls': urls,
+            'acl': []
         }
 
         if gf_id:
@@ -234,7 +244,10 @@ class FileImporter:
         if bs_id:
             gf['biospecimen_id'] = bs_id
         if study_id:
-            gf['acl'] = [ study_id ]
+            gf['acl'].append(study_id)
+        external_id = self.get_external_id(study_id)
+        if external_id:
+            gf['acl'].append(external_id)
 
         resp = requests.post(self.api+'genomic-files', json=gf)
 
