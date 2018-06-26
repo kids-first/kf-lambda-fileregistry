@@ -72,7 +72,7 @@ def handler(event, context):
         # NB: We check that i > 0 to ensure that *some* progress has been made
         # to avoid infinite call chains.
         if (hasattr(context, 'invoked_function_arn') and
-            context.get_remaining_time_in_millis() < 500 and
+            context.get_remaining_time_in_millis() < 5000 and
             i > 0):
             records = event['Records'][i:]
             print('not able to complete {} records, '
