@@ -97,7 +97,8 @@ def test_out_of_time(event, obj):
         _, args = mock().invoke.call_args_list[0]
         assert args['FunctionName'] == Context().invoked_function_arn
         assert args['InvocationType'] == 'Event'
-        assert json.loads(args['Payload']) =={'Records': [event['Records'][1]]}
+        payload = json.loads(args['Payload'].decode('utf-8'))
+        assert  payload == {'Records': [event['Records'][1]]}
 
     mock_r.stop()
 
