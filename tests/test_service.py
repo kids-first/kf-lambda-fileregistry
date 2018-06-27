@@ -400,7 +400,7 @@ def test_new_file():
     req.post.return_value = mock_resp
 
     importer = service.FileImporter('http://api.com/', 'abc123')
-    
+
     res = importer.new_file(BUCKET, OBJECT,
                             'd41d8cd98f00b204e9800998ecf8427e', 1024)
 
@@ -432,7 +432,7 @@ def test_new_file_gf_id():
     req.post.return_value = mock_resp
 
     importer = service.FileImporter('http://api.com/', 'abc123')
-    
+
     res = importer.new_file(BUCKET, OBJECT,
                             'd41d8cd98f00b204e9800998ecf8427e', 1024,
                             gf_id='GF_00000001', bs_id='BS_00000001',
@@ -457,6 +457,50 @@ def test_new_file_gf_id():
     assert req.post.call_count == 1
 
 
+@pytest.mark.parametrize('filename,file_format,data_type',[
+    ('test.bam', 'bam', 'Aligned Reads'),
+    ('test.test.bam', 'bam', 'Aligned Reads'),
+    ('test.test.bai', 'bai', 'Aligned Reads Index'),
+    ('test.g.vcf.gz', 'gVCF', 'gVCF'),
+    ('test.tbi', 'tbi', 'gVCF Index'),
+])
+def test_file_formats(filename, file_format, data_type):
+    """ Test that file formats and data types are discovered correctly """
+    mock = patch('service.requests')
+    req = mock.start()
+    mock_resp = MagicMock()
+    mock_resp.status_code = 201
+    mock_resp.json.return_value = {'results': {'kf_id': 'GF_00000001'}}
+    req.post.return_value = mock_resp
+
+    importer = service.FileImporter('http://api.com/', 'abc123')
+
+    res = importer.new_file(SOURCE_BUCKET, filename,
+                            'd41d8cd98f00b204e9800998ecf8427e', 1024,
+                            gf_id='GF_00000001', bs_id='BS_00000000',
+                            study_id='SD_00000000')
+
+    expected = {
+        'kf_id': 'GF_00000001',
+        'file_name': filename,
+        'file_format': file_format,
+        'acl': ['SD_00000000'],
+        'data_type': data_type,
+        'controlled_access': True,
+        'availability': 'Immediate Download',
+        'is_harmonized': False,
+        'biospecimen_id': 'BS_00000000',
+        'hashes': {'etag': 'd41d8cd98f00b204e9800998ecf8427e'},
+        'size': 1024,
+        'urls': ['s3://{}/{}'.format(SOURCE_BUCKET, SOURCE_OBJECT)]
+    }
+
+    assert req.post.call_count == 1
+    called_with = req.post.call_args_list[0][1]['json']
+    assert called_with['file_format'] == file_format
+    assert called_with['data_type'] == data_type
+
+
 def test_new_file_bs_id():
     """ Test that new source file registers with a biospecimen """
     mock = patch('service.requests')
@@ -467,7 +511,7 @@ def test_new_file_bs_id():
     req.post.return_value = mock_resp
 
     importer = service.FileImporter('http://api.com/', 'abc123')
-    
+
     res = importer.new_file(SOURCE_BUCKET, SOURCE_OBJECT,
                             'd41d8cd98f00b204e9800998ecf8427e', 1024,
                             gf_id='GF_00000001', bs_id='BS_00000000',
@@ -503,7 +547,7 @@ def test_new_file_error():
     req.post.return_value = mock_resp
 
     importer = service.FileImporter('http://api.com/', 'abc123')
-    
+
     with pytest.raises(service.DataServiceException):
         res = importer.new_file(BUCKET, OBJECT,
                                 'd41d8cd98f00b204e9800998ecf8427e', 1024)
