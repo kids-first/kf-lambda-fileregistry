@@ -42,11 +42,14 @@ FILE_FORMATS = {
 class ImportException(Exception):
         pass
 
+
 class DataServiceException(Exception):
         pass
 
+
 class CavaticaException(Exception):
         pass
+
 
 def handler(event, context):
     """
@@ -61,7 +64,9 @@ def handler(event, context):
     TOKEN = os.environ.get('CAVATICA_TOKEN', None)
     CAVATICA_TOKEN = None
     if TOKEN:
-        CAVATICA_TOKEN = boto3.client('kms').decrypt(CiphertextBlob=b64decode(TOKEN)).get('Plaintext', None)
+        CAVATICA_TOKEN = boto3.client('kms').\
+                         decrypt(CiphertextBlob=b64decode(TOKEN)).\
+                         get('Plaintext', None)
         HEADERS = {'X-SBG-Auth-Token': CAVATICA_TOKEN}
 
     importer = FileImporter(DATASERVICE_API, CAVATICA_TOKEN)
@@ -124,14 +129,13 @@ class FileImporter:
         except (DataServiceException, ImportException) as err:
             res['source'] = str(err)
 
-
         return res
 
     def import_harmonized(self, record):
         """
         Imports a harmonized file from an s3 event record
 
-        The object in the event must already be tagged with the following 
+        The object in the event must already be tagged with the following
         required fields in order to be imported:
 
         - `cavatica_harmonized_file`
@@ -148,7 +152,7 @@ class FileImporter:
 
         If the biospecimen that is referenced in the `bs_id` tag is not
         found in the dataservice, abort the import.
-        
+
         Once the genomic file has been imported to the dataservice, tag the
         object with the kf_id under the `gf_id` tag, unless there was already a
         `gf_id` field there.
@@ -220,7 +224,9 @@ class FileImporter:
         hashes = {'etag': etag.replace('"', '')}
         urls = ['s3://{}/{}'.format(bucket, key)]
         file_format = key.split('/')[-1].lower()
-        file_format = file_format[file_format.find('.')+1:]
+        for k in FILE_FORMATS:
+            if file_format.endswith(k):
+                file_format = FILE_FORMATS[k]
         data_type = DATA_TYPES[file_format]
         if file_format in FILE_FORMATS:
             file_format = FILE_FORMATS[file_format]
@@ -284,7 +290,6 @@ class FileImporter:
             gf_id = tags['gf_id']
         return gf_id
 
-
     def register_input(self, harm_tags):
         """
         Registers a source genomic file given an s3 path
@@ -301,7 +306,7 @@ class FileImporter:
         gf_id = self.get_gf_id_tag(tags)
 
         obj = s3.get_object(Bucket=bucket, Key=key)
-        
+
         gf = self.new_file(bucket, key, obj['ETag'], obj['ContentLength'],
                            bs_id=harm_tags['bs_id'], study_id=study_id,
                            gf_id=gf_id)

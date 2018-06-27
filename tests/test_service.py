@@ -400,7 +400,7 @@ def test_new_file():
     req.post.return_value = mock_resp
 
     importer = service.FileImporter('http://api.com/', 'abc123')
-    
+
     res = importer.new_file(BUCKET, OBJECT,
                             'd41d8cd98f00b204e9800998ecf8427e', 1024)
 
@@ -432,7 +432,7 @@ def test_new_file_gf_id():
     req.post.return_value = mock_resp
 
     importer = service.FileImporter('http://api.com/', 'abc123')
-    
+
     res = importer.new_file(BUCKET, OBJECT,
                             'd41d8cd98f00b204e9800998ecf8427e', 1024,
                             gf_id='GF_00000001', bs_id='BS_00000001',
@@ -467,7 +467,7 @@ def test_new_file_bs_id():
     req.post.return_value = mock_resp
 
     importer = service.FileImporter('http://api.com/', 'abc123')
-    
+
     res = importer.new_file(SOURCE_BUCKET, SOURCE_OBJECT,
                             'd41d8cd98f00b204e9800998ecf8427e', 1024,
                             gf_id='GF_00000001', bs_id='BS_00000000',
@@ -503,7 +503,7 @@ def test_new_file_error():
     req.post.return_value = mock_resp
 
     importer = service.FileImporter('http://api.com/', 'abc123')
-    
+
     with pytest.raises(service.DataServiceException):
         res = importer.new_file(BUCKET, OBJECT,
                                 'd41d8cd98f00b204e9800998ecf8427e', 1024)
