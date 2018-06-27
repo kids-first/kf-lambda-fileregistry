@@ -17,9 +17,13 @@ DATA_TYPES = {
     'hgv.bam': 'Aligned Reads',
     'bam': 'Aligned Reads',
     'cram': 'Aligned Reads',
+    'bai': 'Aligned Reads Index',
     'bam.bai': 'Aligned Reads Index',
     'cram.crai': 'Aligned Reads Index',
+    'g.vcf': 'gVCF',
     'g.vcf.gz': 'gVCF',
+    'gVCF': 'gVCF',
+    'tbi': 'gVCF Index',
     'g.vcf.gz.tbi': 'gVCF Index'
 }
 
@@ -32,9 +36,12 @@ FILE_FORMATS = {
     'bam': 'bam',
     'hgv.bam': 'bam',
     'cram': 'cram',
+    'bai': 'bai',
     'bam.bai': 'bai',
     'cram.crai': 'crai',
+    'vcf.gz': 'gVCF',
     'g.vcf.gz': 'gVCF',
+    'tbi': 'tbi',
     'g.vcf.gz.tbi': 'tbi'
 }
 
@@ -227,6 +234,7 @@ class FileImporter:
         for k in FILE_FORMATS:
             if file_format.endswith(k):
                 file_format = FILE_FORMATS[k]
+                break
         data_type = DATA_TYPES[file_format]
         if file_format in FILE_FORMATS:
             file_format = FILE_FORMATS[file_format]
