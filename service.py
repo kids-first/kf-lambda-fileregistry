@@ -241,7 +241,10 @@ class FileImporter:
         if file_format in FILE_FORMATS:
             file_format = FILE_FORMATS[file_format]
         harmonized = key.startswith('harmonized/')
-
+        # Add reference_genome for harmonized files
+        reference_genome = None
+        if harmonized:
+           reference_genome = 'GRCh38'
         gf = {
             'file_name': file_name,
             'file_format': file_format,
@@ -249,6 +252,7 @@ class FileImporter:
             'availability': 'Immediate Download',
             'controlled_access': True,
             'is_harmonized': harmonized,
+            'reference_genome': reference_genome,
             'hashes': hashes,
             'size': size,
             'urls': urls,
