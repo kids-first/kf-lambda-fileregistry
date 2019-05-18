@@ -5,16 +5,20 @@ A lambda to listen for new files and import them to the Data Service
 
 # Operation
 
-The function will attempt to import a file from s3 using tags on the object.
+The `invoker` will be called given a bucket and a prefix. All objects under that bucket and prefix will be the target of the main `service.handler()` in batches of up to 10 objects per invocation.
 
-The event recieved by the lambda is expected to be for the harmonized file.
+When the `service.handler()` is called given a list of up to 10 s3 events (see below), it will attempt to import, or update, a GenomicFile for that object.
 
-A genomic file for the source file will attempt to be imported using the
-`cavatica_source_path` tag.
+For each object passed into the handler:
 
-Both the source file and the harmonized file will attempt to be linked to the
-biospecimen by looking up the `bs_id` in the dataservice. If no biospecimen
-is found, no genomic files will be created.
+1) inspect the tags on that object
+2) if there is no `study_id` tag, add it to the tags using the bucket name
+3) if there is a `gf_id` tag, look up that `kf_id` in the dataservice to see if exists
+  3a) if it exists in the dataservice, it's already been imported. Skip to 7) 
+4) Check that the required tags are present, else stop importing: `['cavatica_harmonized_file', 'cavatica_source_file', 'cavatica_app', 'bs_id', 'cavatica_source_path', 'cavatica_task']`
+5) Check that a Biospecimen exists in the dataservice matching the `bs_id` tag, else stop importing
+6) Register a GenomicFile in the Dataservice
+7) Repeat from 1) for the object at the `cavatica_source_path`
 
 # Invocation
 
